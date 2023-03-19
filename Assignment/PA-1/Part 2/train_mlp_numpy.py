@@ -15,6 +15,7 @@ DNN_HIDDEN_UNITS_DEFAULT = '20'
 LEARNING_RATE_DEFAULT = 1e-2
 MAX_EPOCHS_DEFAULT = 1500
 EVAL_FREQ_DEFAULT = 10
+METHOD_DEFAULT = 'BGD'
 
 FLAGS = None
 
@@ -49,18 +50,21 @@ def accuracy_loss(mlp: MLP, data: np.ndarray, label: np.ndarray, criterion: Cros
     loss = 0
     predict = []
     for x, y in zip(data, label):
-        x, y = x.reshape(1, -1), y.reshape(1, -1)
         y_hat = mlp.forward(x)
         loss += criterion.forward(y_hat, y)
         predict.append(y_hat)
     return accuracy(np.array(predict), label), loss / len(data)
 
 
-def train():
+def train(x_train,
+          x_test,
+          y_train,
+          y_test):
     """
     Performs training and evaluation of MLP model.
     NOTE: You should the model on the whole test set each eval_freq iterations.
     """
+    print(FLAGS)
     # YOUR TRAINING CODE GOES HERE
     x_axis = []
     train_accuracy, train_loss, test_accuracy, test_loss = [], [], [], []
@@ -71,20 +75,22 @@ def train():
     eval_freq = FLAGS.eval_freq
     method = FLAGS.method
 
-    x_train, x_test, y_train, y_test = make_data(noise=0, train_size=0.8)
-    batch_size = x_train.shape[0] if method == 'BGD' else 1
+    batch_size = x_train.shape[0]
     mlp = MLP(2, n_hidden, 2, batch_size, lr)
     criterion = CrossEntropy()
     for epoch in range(epochs):
+        mlp.zero_grad()
         for i in range(batch_size):
             i = i if method == 'BGD' else np.random.randint(0, batch_size)
             x, y = x_train[i], y_train[i]
-            mlp.zero_grad()
 
             y_hat = mlp.forward(x)
             dx = criterion.backward(y_hat, y)
             mlp.backward(dx)
-        mlp.step()
+            if method == 'SGD':
+                mlp.step()
+        if method == 'BGD':
+            mlp.step()
 
         if epoch % eval_freq == 0:
             x_axis.append(epoch)
@@ -100,9 +106,9 @@ def train():
                   f'Train Accuracy: {train_accuracy[-1]} \t Train Loss: {train_loss[-1]}\n'
                   f'Test Accuracy: {test_accuracy[-1]} \t Test Loss: {test_loss[-1]}\n')
 
-    plt.plot(x_axis, train_accuracy, label='train acc')
+    plt.plot(x_axis, train_accuracy, label='train accuracy')
     plt.plot(x_axis, train_loss, label='train loss')
-    plt.plot(x_axis, test_accuracy, label='test acc')
+    plt.plot(x_axis, test_accuracy, label='test accuracy')
     plt.plot(x_axis, test_loss, label='test loss')
     plt.legend()
     plt.show()
@@ -112,7 +118,8 @@ def main():
     """
     Main function
     """
-    train()
+    x_train, x_test, y_train, y_test = make_data(0.05)
+    train(x_train, x_test, y_train, y_test)
 
 
 if __name__ == '__main__':

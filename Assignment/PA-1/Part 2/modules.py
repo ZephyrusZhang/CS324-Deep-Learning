@@ -17,7 +17,7 @@ class Linear(object):
         self.in_features = in_features
         self.out_features = out_features
         self.params = {
-            'weight': np.random.normal(loc=0, scale=1, size=(out_features, in_features)),
+            'weight': np.random.normal(0, 1, size=(out_features, in_features)),
             'bias': np.zeros(shape=out_features)
         }
         self.grads = {
