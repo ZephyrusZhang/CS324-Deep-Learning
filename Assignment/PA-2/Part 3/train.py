@@ -12,13 +12,13 @@ from torch.utils.data import DataLoader
 from dataset import PalindromeDataset
 from vanilla_rnn import VanillaRNN
 
-def train(config):
 
+def train(config):
     # Initialize the model that we are going to use
-    model = None  # fixme
+    model = VanillaRNN()  # fixme
 
     # Initialize the dataset and data loader (leave the +1)
-    dataset = PalindromeDataset(config.input_length+1)
+    dataset = PalindromeDataset(config.input_length + 1)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
 
     # Setup the loss and optimizer
@@ -34,10 +34,11 @@ def train(config):
 
         # Add more code here ...
 
-        loss = np.inf   # fixme
+        loss = np.inf  # fixme
         accuracy = 0.0  # fixme
 
         if step % 10 == 0:
+            pass
             # print acuracy/loss here
 
         if step == config.train_steps:
@@ -47,8 +48,8 @@ def train(config):
 
     print('Done training.')
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     # Parse training configuration
     parser = argparse.ArgumentParser()
 
