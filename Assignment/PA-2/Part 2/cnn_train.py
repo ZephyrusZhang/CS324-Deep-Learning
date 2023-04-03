@@ -3,22 +3,20 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-
 import datetime
 import matplotlib.pyplot as plt
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
-from cnn_model import CNN
 from torch.utils.data import DataLoader
+from cnn_model import CNN
 
 # Default constants
 LEARNING_RATE_DEFAULT = 1e-4
-BATCH_SIZE_DEFAULT = 256
+BATCH_SIZE_DEFAULT = 128
 MAX_EPOCHS_DEFAULT = 500
 EVAL_FREQ_DEFAULT = 1
 OPTIMIZER_DEFAULT = 'ADAM'
@@ -26,33 +24,35 @@ OPTIMIZER_DEFAULT = 'ADAM'
 FLAGS = None
 
 
+@torch.no_grad()
 def accuracy(model, loader):
     correct, total = 0, 0
-    with torch.no_grad():
-        for data in loader:
-            inputs, labels = data
-            inputs, labels = inputs.cuda(), labels.cuda()
-            outputs = model(inputs)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += np.around(predicted == labels).sum().item()
+    for data in loader:
+        inputs, labels = data
+        inputs, labels = inputs.cuda(), labels.cuda()
+        outputs = model(inputs)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
     return correct / total
 
 
-def accuracy_loss(model, loader, criterion, optimizer):
+@torch.no_grad()
+def accuracy_loss(model, loader, criterion):
     running_loss = 0.0
-    for i, data in enumerate(loader):
+    correct, total = 0, 0
+    for data in loader:
         inputs, labels = data
         inputs, labels = inputs.cuda(), labels.cuda()
-        optimizer.zero_grad()
-
         outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
 
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+        loss = criterion(outputs, labels)
         running_loss += loss.item()
-    return accuracy(model, loader), running_loss / len(loader)
+    return correct / total, running_loss / total
 
 
 def train(opt, train_loader, test_loader):
@@ -86,7 +86,7 @@ def train(opt, train_loader, test_loader):
             x_axis.append(epoch)
             train_accuracy.append(accuracy(cnn, train_loader))
             train_loss.append(running_loss / len(train_loader))
-            acc, loss = accuracy_loss(cnn, test_loader, criterion, optimizer)
+            acc, loss = accuracy_loss(cnn, test_loader, criterion)
             test_accuracy.append(acc)
             test_loss.append(loss)
             print(f'{datetime.datetime.now()}: '

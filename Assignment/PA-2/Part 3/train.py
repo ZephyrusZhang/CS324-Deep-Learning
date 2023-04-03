@@ -3,45 +3,98 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import time
-import numpy as np
-
+import datetime
 import torch
+import torch.nn as nn
+import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from dataset import PalindromeDataset
 from vanilla_rnn import VanillaRNN
 
 
-def train(config):
-    # Initialize the model that we are going to use
-    model = VanillaRNN()  # fixme
+@torch.no_grad()
+def accuracy(model, loader, n_samples=128):
+    correct, total = 0, 0
+    for i, data in enumerate(loader):
+        inputs, labels = data
+        inputs, labels = inputs.cuda(), labels.cuda()
+        outputs = model(inputs)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+        if (i + 1) % n_samples == 0:
+            break
+    return correct / total
 
-    # Initialize the dataset and data loader (leave the +1)
-    dataset = PalindromeDataset(config.input_length + 1)
-    data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
+
+@torch.no_grad()
+def accuracy_loss(model, loader, criterion, n_samples=128):
+    running_loss = 0.0
+    correct, total = 0, 0
+    for i, data in enumerate(loader):
+        inputs, labels = data
+        inputs, labels = inputs.cuda(), labels.cuda()
+        outputs = model(inputs)
+
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+        loss = criterion(outputs, labels)
+        running_loss += loss.item()
+
+        if (i + 1) % n_samples == 0:
+            break
+    return correct / total, running_loss / total
+
+
+def train(opt, train_loader, test_loader):
+    x_axis = []
+    train_accuracy, train_loss, test_accuracy, test_loss = [], [], [], []
+
+    # Initialize the model that we are going to use
+    model = VanillaRNN(
+        seq_length=opt.input_length,
+        input_dim=opt.input_dim,
+        hidden_dim=opt.num_hidden,
+        output_dim=opt.num_classes,
+        batch_size=opt.batch_size
+    ).cuda()
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=opt.learning_rate)
 
-    for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-
+    running_loss = 0.0
+    for step, (batch_inputs, batch_targets) in enumerate(train_loader):
         # Add more code here ...
+        batch_inputs, batch_targets = batch_inputs.cuda(), batch_targets.cuda()
 
         # the following line is to deal with exploding gradients
-        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=opt.max_norm)
 
         # Add more code here ...
+        optimizer.zero_grad()
+        outputs = model(batch_inputs)
+        loss = criterion(outputs, batch_targets)
+        loss.backward()
+        optimizer.step()
 
-        loss = np.inf  # fixme
-        accuracy = 0.0  # fixme
+        running_loss += loss.item()
+        if step % opt.eval_freq == 0:
+            x_axis.append(step)
+            train_accuracy.append(accuracy(model, train_loader))
+            train_loss.append(running_loss / len(train_loader))
+            acc, loss = accuracy_loss(model, test_loader, criterion)
+            test_accuracy.append(acc)
+            test_loss.append(loss)
+            print(f'{datetime.datetime.now()}: '
+                  f'Epoch {x_axis[-1]}\t'
+                  f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
+                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}')
 
-        if step % 10 == 0:
-            pass
-            # print acuracy/loss here
-
-        if step == config.train_steps:
+        if step == opt.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
             # https://github.com/pytorch/pytorch/pull/9655
             break
@@ -49,20 +102,30 @@ def train(config):
     print('Done training.')
 
 
+def main(opt):
+    train_dataset = PalindromeDataset(opt.input_length + 1)
+    train_loader = DataLoader(train_dataset, opt.batch_size, num_workers=1)
+    test_dataset = PalindromeDataset(opt.input_length + 1)
+    test_loader = DataLoader(test_dataset, opt.batch_size, num_workers=1)
+
+    train(opt, train_loader, test_loader)
+
+
 if __name__ == "__main__":
     # Parse training configuration
     parser = argparse.ArgumentParser()
 
     # Model params
-    parser.add_argument('--input_length', type=int, default=10, help='Length of an input sequence')
+    parser.add_argument('--input_length', type=int, default=5, help='Length of an input sequence')
     parser.add_argument('--input_dim', type=int, default=1, help='Dimensionality of input sequence')
     parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
     parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
+    parser.add_argument('--train_steps', type=int, default=1000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
+    parser.add_argument('--eval_freq', type=int, default=10)
 
     config = parser.parse_args()
     # Train the model
-    train(config)
+    main(config)

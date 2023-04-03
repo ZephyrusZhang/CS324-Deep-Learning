@@ -46,19 +46,21 @@ def accuracy(mlp, loader):
     return correct / total
 
 
-def accuracy_loss(mlp, loader, criterion, optimizer):
+@torch.no_grad()
+def accuracy_loss(mlp, loader, criterion):
     running_loss = 0.0
+    correct, total = 0, 0
     for i, data in enumerate(loader):
         inputs, labels = data
-        optimizer.zero_grad()
-
         outputs = mlp(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
 
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += np.around(predicted == labels).sum().item()
+
+        loss = criterion(outputs, labels)
         running_loss += loss.item()
-    return accuracy(mlp, loader), running_loss / len(loader)
+    return correct / total, running_loss / total
 
 
 def train(opt, x_train, x_test, y_train, y_test):
@@ -91,7 +93,7 @@ def train(opt, x_train, x_test, y_train, y_test):
             x_axis.append(epoch)
             train_accuracy.append(accuracy(mlp, train_loader))
             train_loss.append(running_loss / len(train_loader))
-            acc, loss = accuracy_loss(mlp, test_loader, criterion, optimizer)
+            acc, loss = accuracy_loss(mlp, test_loader, criterion)
             test_accuracy.append(acc)
             test_loss.append(loss)
             print(f'Epoch {x_axis[-1]}\t\t'
