@@ -20,23 +20,20 @@ class VanillaRNN(nn.Module):
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
 
-        self.Whx = Parameter(torch.zeros(input_dim, hidden_dim))
-        self.Whh = Parameter(torch.zeros(hidden_dim, hidden_dim))
+        self.Whx = Parameter(torch.randn(input_dim, hidden_dim))
+        self.Whh = Parameter(torch.randn(hidden_dim, hidden_dim))
         self.bh = Parameter(torch.zeros(hidden_dim))
-        self.Why = Parameter(torch.zeros(hidden_dim, output_dim))
+        self.Why = Parameter(torch.randn(hidden_dim, output_dim))
         self.bo = Parameter(torch.zeros(output_dim))
 
     def forward(self, x):
         x = x.view(self.batch_size, self.seq_length, self.input_dim)
-        h = None
+        h = Parameter(torch.zeros(self.batch_size, self.hidden_dim)).cuda()
         for t in range(self.seq_length):
             xt = x[:, t, :]
-            if t == 0:
-                h = torch.tanh(xt @ self.Whx + self.bh)
-            else:
-                h = torch.tanh(xt @ self.Whx + h @ self.Whh + self.bh)
-        o = h @ self.Why + self.bo
-        y = softmax(o, dim=1)
+            h = torch.tanh(xt @ self.Whx + h @ self.Whh + self.bh)
+        y = h @ self.Why + self.bo
+        y = softmax(y, dim=1)
         return y
 
     # add more methods here if needed

@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import datetime
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -14,22 +14,7 @@ from vanilla_rnn import VanillaRNN
 
 
 @torch.no_grad()
-def accuracy(model, loader, n_samples=128):
-    correct, total = 0, 0
-    for i, data in enumerate(loader):
-        inputs, labels = data
-        inputs, labels = inputs.cuda(), labels.cuda()
-        outputs = model(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-        if (i + 1) % n_samples == 0:
-            break
-    return correct / total
-
-
-@torch.no_grad()
-def accuracy_loss(model, loader, criterion, n_samples=128):
+def evaluate(model, loader, criterion, n_samples):
     running_loss = 0.0
     correct, total = 0, 0
     for i, data in enumerate(loader):
@@ -67,12 +52,15 @@ def train(opt, train_loader, test_loader):
     optimizer = optim.RMSprop(model.parameters(), lr=opt.learning_rate)
 
     running_loss = 0.0
+    total_time = 0.0
     for step, (batch_inputs, batch_targets) in enumerate(train_loader):
-        # Add more code here ...
-        batch_inputs, batch_targets = batch_inputs.cuda(), batch_targets.cuda()
+        start_time = time.time()
 
         # the following line is to deal with exploding gradients
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=opt.max_norm)
+
+        # Add more code here ...
+        batch_inputs, batch_targets = batch_inputs.cuda(), batch_targets.cuda()
 
         # Add more code here ...
         optimizer.zero_grad()
@@ -82,17 +70,20 @@ def train(opt, train_loader, test_loader):
         optimizer.step()
 
         running_loss += loss.item()
+        total_time += time.time() - start_time
+
         if step % opt.eval_freq == 0:
+            _, predicted = torch.max(outputs.data, 1)
             x_axis.append(step)
-            train_accuracy.append(accuracy(model, train_loader))
-            train_loss.append(running_loss / len(train_loader))
-            acc, loss = accuracy_loss(model, test_loader, criterion)
+            train_accuracy.append((predicted == batch_targets).sum().item() / batch_targets.size(0))
+            train_loss.append(running_loss / (step + 1))
+            acc, loss = evaluate(model, test_loader, criterion, opt.batch_size)
             test_accuracy.append(acc)
             test_loss.append(loss)
-            print(f'{datetime.datetime.now()}: '
-                  f'Epoch {x_axis[-1]}\t'
+            print(f'Epoch {x_axis[-1]}\n'
                   f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
-                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}')
+                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}\t'
+                  f'Avg Time Cost: {total_time / (step + 1):.3f}s')
 
         if step == opt.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
@@ -122,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--train_steps', type=int, default=1000, help='Number of training steps')
+    parser.add_argument('--train_steps', type=int, default=5000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--eval_freq', type=int, default=10)
 

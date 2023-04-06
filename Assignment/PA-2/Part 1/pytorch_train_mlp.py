@@ -6,6 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -35,32 +36,18 @@ def make_loader(x_train, x_test, y_train, y_test, batch=1):
 
 
 @torch.no_grad()
-def accuracy(mlp, loader):
-    correct, total = 0, 0
-    for data in loader:
-        inputs, labels = data
-        outputs = mlp(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += np.around(predicted == labels).sum().item()
-    return correct / total
-
-
-@torch.no_grad()
-def accuracy_loss(mlp, loader, criterion):
+def evaluate(mlp, loader, criterion):
     running_loss = 0.0
     correct, total = 0, 0
     for i, data in enumerate(loader):
         inputs, labels = data
         outputs = mlp(inputs)
-
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
         correct += np.around(predicted == labels).sum().item()
-
         loss = criterion(outputs, labels)
         running_loss += loss.item()
-    return correct / total, running_loss / total
+    return correct / total, running_loss / len(loader)
 
 
 def train(opt, x_train, x_test, y_train, y_test):
@@ -77,8 +64,11 @@ def train(opt, x_train, x_test, y_train, y_test):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(mlp.parameters(), lr=opt.learning_rate)
 
+    total_time = 0
     for epoch in range(opt.max_steps):
         running_loss = 0.0
+        correct, total = 0, 0
+        start_time = time.time()
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data  # 获取此次训练的输入和标签
             optimizer.zero_grad()  # 清空网络中的梯度累计
@@ -89,16 +79,25 @@ def train(opt, x_train, x_test, y_train, y_test):
             optimizer.step()  # 更新网络中的参数
 
             running_loss += loss.item()  # loss累计计算
+
+            if epoch % opt.eval_freq == 0:
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        total_time += time.time() - start_time
+
         if epoch % 10 == 0:
             x_axis.append(epoch)
-            train_accuracy.append(accuracy(mlp, train_loader))
+            train_accuracy.append(correct / total)
             train_loss.append(running_loss / len(train_loader))
-            acc, loss = accuracy_loss(mlp, test_loader, criterion)
+            acc, loss = evaluate(mlp, test_loader, criterion)
             test_accuracy.append(acc)
             test_loss.append(loss)
-            print(f'Epoch {x_axis[-1]}\t\t'
-                  f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
-                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}')
+            print(f'Epoch {x_axis[-1]}\n'
+                  f'Train Accuracy: {train_accuracy[-1]:.3f}\tTrain Loss: {train_loss[-1]:.3f}\t'
+                  f'Test Accuracy: {test_accuracy[-1]:.3f}\tTest Loss: {test_loss[-1]:.3f}\t'
+                  f'Avg Time Cost: {total_time / (epoch + 1):.3f}s')
 
     plt.plot(x_axis, train_accuracy, label='train accuracy')
     plt.plot(x_axis, train_loss, label='train loss')

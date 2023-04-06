@@ -52,7 +52,7 @@ def accuracy(predictions: np.ndarray, targets: np.ndarray):
     return cnt / len(predictions)
 
 
-def accuracy_loss(mlp: MLP, data: np.ndarray, label: np.ndarray, criterion: CrossEntropy):
+def evaluate(mlp: MLP, data: np.ndarray, label: np.ndarray, criterion: CrossEntropy):
     loss = 0
     predict = []
     for x, y in zip(data, label):
@@ -102,10 +102,10 @@ def train(opt,
         if epoch % eval_freq == 0:
             x_axis.append(epoch)
 
-            acc, loss = accuracy_loss(mlp, x_train, y_train, criterion)
+            acc, loss = evaluate(mlp, x_train, y_train, criterion)
             train_accuracy.append(acc)
             train_loss.append(loss)
-            acc, loss = accuracy_loss(mlp, x_test, y_test, criterion)
+            acc, loss = evaluate(mlp, x_test, y_test, criterion)
             test_accuracy.append(acc)
             test_loss.append(loss)
 
