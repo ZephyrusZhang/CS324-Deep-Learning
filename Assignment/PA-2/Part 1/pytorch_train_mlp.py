@@ -69,7 +69,7 @@ def train(opt, x_train, x_test, y_train, y_test):
         running_loss = 0.0
         correct, total = 0, 0
         start_time = time.time()
-        for i, data in enumerate(train_loader, 0):
+        for data in train_loader:
             inputs, labels = data  # 获取此次训练的输入和标签
             optimizer.zero_grad()  # 清空网络中的梯度累计
 
@@ -87,7 +87,7 @@ def train(opt, x_train, x_test, y_train, y_test):
 
         total_time += time.time() - start_time
 
-        if epoch % 10 == 0:
+        if epoch % opt.eval_freq == 0:
             x_axis.append(epoch)
             train_accuracy.append(correct / total)
             train_loss.append(running_loss / len(train_loader))

@@ -6,6 +6,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import time
 
 from mlp_numpy import MLP
 from modules import CrossEntropy
@@ -28,7 +29,6 @@ def make_data(noise: float, n=1000, train_size=0.8, shuffle=True):
         x, y = make_moons(n_samples=n, shuffle=shuffle, noise=noise, random_state=FLAGS.seed)
     elif FLAGS.generator == 'circles':
         x, y = make_circles(n_samples=n, shuffle=shuffle, noise=noise, random_state=FLAGS.seed)
-    # x, y = make_moons(n_samples=n, shuffle=shuffle, noise=noise)
     y = np.column_stack((y, 1 - y))
     x_train, x_test = x[:train_data_size], x[train_data_size:]
     y_train, y_test = y[:train_data_size], y[train_data_size:]
@@ -85,8 +85,10 @@ def train(opt,
     batch_size = x_train.shape[0]
     mlp = MLP(2, n_hidden, 2, batch_size, lr)
     criterion = CrossEntropy()
+    total_time = 0.0
     for epoch in range(epochs):
         mlp.zero_grad()
+        start_time = time.time()
         for i in range(batch_size):
             i = i if method == 'BGD' else np.random.randint(0, batch_size)
             x, y = x_train[i], y_train[i]
@@ -99,6 +101,8 @@ def train(opt,
         if method == 'BGD':
             mlp.step()
 
+        total_time += time.time() - start_time
+
         if epoch % eval_freq == 0:
             x_axis.append(epoch)
 
@@ -109,9 +113,10 @@ def train(opt,
             test_accuracy.append(acc)
             test_loss.append(loss)
 
-            print(f'Epoch {x_axis[-1]} \t\t'
+            print(f'Epoch {x_axis[-1]}\n'
                   f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
-                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}')
+                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}\t'
+                  f'Avg Time Cost: {total_time / (epoch + 1):.3f}s')
 
     plt.plot(x_axis, train_accuracy, label='train accuracy')
     plt.plot(x_axis, train_loss, label='train loss')
@@ -130,7 +135,6 @@ def main(opt):
     """
     Main function
     """
-    np.random.seed(opt.seed)
     x_train, x_test, y_train, y_test = make_data(opt.noise)
     train(opt, x_train, x_test, y_train, y_test)
 

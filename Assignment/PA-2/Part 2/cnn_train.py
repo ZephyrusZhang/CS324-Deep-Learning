@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import datetime
 import matplotlib.pyplot as plt
 import time
 import torch
@@ -73,10 +72,10 @@ def train(opt, train_loader, test_loader):
 
             running_loss += loss.item()
 
-            if epoch & opt.eval_freq == 0:
+            if epoch % opt.eval_freq == 0:
                 _, predicted = torch.max(outputs.data, 1)
-                correct += (predicted == labels).sum().item()
                 total += labels.size(0)
+                correct += (predicted == labels).sum().item()
 
         total_time += time.time() - start_time
 
@@ -87,8 +86,7 @@ def train(opt, train_loader, test_loader):
             acc, loss = evaluate(cnn, test_loader, criterion)
             test_accuracy.append(acc)
             test_loss.append(loss)
-            print(f'{datetime.datetime.now()}: '
-                  f'Epoch {x_axis[-1]}\n'
+            print(f'Epoch {x_axis[-1]}\n'
                   f'Train Accuracy: {train_accuracy[-1]:.3f}\tTrain Loss: {train_loss[-1]:.3f}\t'
                   f'Test Accuracy: {test_accuracy[-1]:.3f}\tTest Loss: {test_loss[-1]:.3f}\t'
                   f'Avg Time Cost: {total_time / (epoch + 1):.3f}s')

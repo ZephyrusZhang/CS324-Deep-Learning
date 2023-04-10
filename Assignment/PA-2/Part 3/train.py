@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+import matplotlib.pyplot as plt
 import time
 import torch
 import torch.nn as nn
@@ -90,7 +91,13 @@ def train(opt, train_loader, test_loader):
             # https://github.com/pytorch/pytorch/pull/9655
             break
 
-    print('Done training.')
+    plt.plot(x_axis, train_accuracy, label='train accuracy')
+    plt.plot(x_axis, train_loss, label='train loss')
+    plt.plot(x_axis, test_accuracy, label='test accuracy')
+    plt.plot(x_axis, test_loss, label='test loss')
+    plt.legend()
+    plt.title(f'seq_length = {opt.input_length}')
+    plt.show()
 
 
 def main(opt):
@@ -113,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--train_steps', type=int, default=5000, help='Number of training steps')
+    parser.add_argument('--train_steps', type=int, default=2000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--eval_freq', type=int, default=10)
 
