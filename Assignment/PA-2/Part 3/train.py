@@ -81,10 +81,12 @@ def train(opt, train_loader, test_loader):
             acc, loss = evaluate(model, test_loader, criterion, opt.batch_size)
             test_accuracy.append(acc)
             test_loss.append(loss)
-            print(f'Epoch {x_axis[-1]}\n'
-                  f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
-                  f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}\t'
-                  f'Avg Time Cost: {total_time / (step + 1):.3f}s')
+
+            if not opt.quiet:
+                print(f'Epoch {x_axis[-1]}\n'
+                      f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
+                      f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}\t'
+                      f'Avg Time Cost: {total_time / (step + 1):.3f}s')
 
         if step == opt.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
@@ -123,6 +125,7 @@ if __name__ == "__main__":
     parser.add_argument('--train_steps', type=int, default=2000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--eval_freq', type=int, default=10)
+    parser.add_argument('--quiet', action='store_true', help='No stdout')
 
     config = parser.parse_args()
     # Train the model

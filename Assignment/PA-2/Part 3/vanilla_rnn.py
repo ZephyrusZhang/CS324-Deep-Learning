@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import torch
 import torch.nn as nn
-from torch.nn.functional import softmax
 
 
 class VanillaRNN(nn.Module):
@@ -21,6 +20,8 @@ class VanillaRNN(nn.Module):
         self.Whx = nn.Linear(input_dim, hidden_dim, bias=False)
         self.Whh = nn.Linear(hidden_dim, hidden_dim, bias=True)
         self.Why = nn.Linear(hidden_dim, output_dim, bias=True)
+        self.tanh = nn.Tanh()
+        self.softmax = nn.Softmax(dim=1)
         # self.bh = Parameter(torch.zeros(hidden_dim))
         # self.bo = Parameter(torch.zeros(output_dim))
 
@@ -29,9 +30,9 @@ class VanillaRNN(nn.Module):
         h = torch.zeros(self.batch_size, self.hidden_dim).cuda()
         for t in range(self.seq_length):
             xt = x[:, t, :]
-            h = torch.tanh(self.Whx(xt) + self.Whh(h))
+            h = self.tanh(self.Whx(xt) + self.Whh(h))
         o = self.Why(h)
-        y = softmax(o, dim=1)
+        y = self.softmax(o)
         return y
 
     # add more methods here if needed
