@@ -10,7 +10,7 @@ import time
 
 from mlp_numpy import MLP
 from modules import CrossEntropy
-from sklearn.datasets import make_moons, make_circles
+from sklearn.datasets import load_iris, make_moons, make_circles
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '20'
@@ -29,6 +29,10 @@ def make_data(noise: float, n=1000, train_size=0.8, shuffle=True):
         x, y = make_moons(n_samples=n, shuffle=shuffle, noise=noise, random_state=FLAGS.seed)
     elif FLAGS.generator == 'circles':
         x, y = make_circles(n_samples=n, shuffle=shuffle, noise=noise, random_state=FLAGS.seed)
+    elif FLAGS.generator == 'iris':
+        x, y = load_iris(return_X_y=True)
+        train_data_size = int(len(y) * train_size)
+        y = (y > 0).astype(int)
     y = np.column_stack((y, 1 - y))
     x_train, x_test = x[:train_data_size], x[train_data_size:]
     y_train, y_test = y[:train_data_size], y[train_data_size:]
@@ -83,7 +87,7 @@ def train(opt,
     method = opt.method
 
     batch_size = x_train.shape[0]
-    mlp = MLP(2, n_hidden, 2, batch_size, lr)
+    mlp = MLP(opt.n_inputs, n_hidden, opt.n_classes, batch_size, lr)
     criterion = CrossEntropy()
     total_time = 0.0
     for epoch in range(epochs):
@@ -156,7 +160,11 @@ if __name__ == '__main__':
                         help='Noise of datasets')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
-    parser.add_argument('--generator', choices=['moons', 'circles'], default='moons',
+    parser.add_argument('--generator', choices=['moons', 'circles', 'iris'], default='moons',
                         help='What datasets to generate')
+    parser.add_argument('--n_inputs', type=int, default=2,
+                        help='Input dimension')
+    parser.add_argument('--n_classes', type=int, default=2,
+                        help='Output class number')
     FLAGS, unparsed = parser.parse_known_args()
     main(FLAGS)

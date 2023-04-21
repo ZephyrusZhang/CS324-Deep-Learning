@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from pytorch_mlp import MLP
-from sklearn.datasets import make_moons, make_circles
+from sklearn.datasets import load_iris, make_moons, make_circles
 from sklearn.model_selection import train_test_split
 from torch import FloatTensor, LongTensor
 from torch.utils.data import DataLoader, TensorDataset
@@ -60,7 +60,7 @@ def train(opt, x_train, x_test, y_train, y_test):
     train_accuracy, train_loss, test_accuracy, test_loss = [], [], [], []
     n_hidden = list(map(lambda ele: int(ele), opt.dnn_hidden_units.split(',')))
     train_loader, test_loader = make_loader(x_train, x_test, y_train, y_test)
-    mlp = MLP(2, n_hidden, 2)
+    mlp = MLP(opt.n_inputs, n_hidden, opt.n_classes)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(mlp.parameters(), lr=opt.learning_rate)
 
@@ -121,6 +121,9 @@ def main(opt):
         data, label = make_moons(n_samples=1000, shuffle=True, noise=0.05, random_state=opt.seed)
     elif opt.generator == 'circles':
         data, label = make_circles(n_samples=1000, shuffle=True, noise=0.05, random_state=opt.seed)
+    elif opt.generator == 'iris':
+        data, label = load_iris(return_X_y=True)
+        label = (label > 0).astype(int)
     x_train, x_test, y_train, y_test = train_test_split(data, label, train_size=0.8, random_state=0)
     train(opt, x_train, x_test, y_train, y_test)
 
@@ -140,7 +143,11 @@ if __name__ == '__main__':
                         help='Noise of datasets')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
-    parser.add_argument('--generator', choices=['moons', 'circles'], default='moons',
+    parser.add_argument('--generator', choices=['moons', 'circles', 'iris'], default='moons',
                         help='What datasets to generate')
+    parser.add_argument('--n_inputs', type=int, default=2,
+                        help='Input dimension')
+    parser.add_argument('--n_classes', type=int, default=2,
+                        help='Output class number')
     FLAGS, unparsed = parser.parse_known_args()
     main(FLAGS)

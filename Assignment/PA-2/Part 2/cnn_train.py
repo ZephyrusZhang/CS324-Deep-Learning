@@ -52,7 +52,15 @@ def train(opt, train_loader, test_loader):
     train_accuracy, train_loss, test_accuracy, test_loss = [], [], [], []
     cnn = CNN(3, 10).cuda()
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(cnn.parameters(), lr=opt.learning_rate)
+    optimizer = None
+    if opt.optimizer == 'Adam':
+        optimizer = optim.Adam(cnn.parameters(), lr=opt.learning_rate)
+    elif opt.optimizer == 'NAdam':
+        optimizer = optim.NAdam(cnn.parameters(), lr=opt.learning_rate)
+    elif opt.optimizer == 'RMSprop':
+        optimizer = optim.RMSprop(cnn.parameters(), lr=opt.learning_rate)
+    else:
+        raise 'Unsupported optimizer exception'
 
     print(cnn, sep='\n<----------------------------------------------->\n')
     total_time = 0
@@ -124,6 +132,7 @@ if __name__ == '__main__':
                         help='Batch size to run trainer.')
     parser.add_argument('--eval_freq', type=int, default=EVAL_FREQ_DEFAULT,
                         help='Frequency of evaluation on the test set')
+    parser.add_argument('--optimizer', choices=['Adam', 'NAdam', 'RMSprop'], default='Adam')
     # parser.add_argument('--data_dir', type=str, default=DATA_DIR_DEFAULT,
     #                     help='Directory for storing input data')
     FLAGS, unparsed = parser.parse_known_args()
