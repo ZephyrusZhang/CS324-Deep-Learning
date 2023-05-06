@@ -9,6 +9,9 @@ import torch.nn as nn
 class LSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(LSTM, self).__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
         # Initialization here ...
         self.Wgx = nn.Linear(input_dim, hidden_dim, bias=False)
         self.Wgh = nn.Linear(hidden_dim, hidden_dim, bias=True)
@@ -25,11 +28,11 @@ class LSTM(nn.Module):
 
     def forward(self, x):
         # Implementation here ...
-        x = x.view(self.batch_size, self.seq_length, self.input_dim)
         batch_size, seq_length = x.size(0), x.size(1)
+        x = x.view(batch_size, seq_length, self.input_dim)
         h_t = torch.zeros(batch_size, self.hidden_dim).cuda()
         c_t = torch.zeros(batch_size, self.hidden_dim).cuda()
-        for t in range(self.seq_length):
+        for t in range(seq_length):
             xt = x[:, t, :]
             g_t = self.tanh(self.Wgx(xt) + self.Wgh(h_t))
             i_t = self.sigmoid(self.Wix(xt) + self.Wih(h_t))
