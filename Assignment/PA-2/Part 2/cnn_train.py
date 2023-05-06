@@ -52,7 +52,6 @@ def train(opt, train_loader, test_loader):
     train_accuracy, train_loss, test_accuracy, test_loss = [], [], [], []
     cnn = CNN(3, 10).cuda()
     criterion = nn.CrossEntropyLoss()
-    optimizer = None
     if opt.optimizer == 'Adam':
         optimizer = optim.Adam(cnn.parameters(), lr=opt.learning_rate)
     elif opt.optimizer == 'NAdam':
@@ -81,7 +80,7 @@ def train(opt, train_loader, test_loader):
             running_loss += loss.item()
 
             if epoch % opt.eval_freq == 0:
-                _, predicted = torch.max(outputs.data, 1)
+                _, predicted = torch.max(outputs.data, dim=1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
 

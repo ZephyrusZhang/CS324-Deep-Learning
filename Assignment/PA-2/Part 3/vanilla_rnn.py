@@ -22,8 +22,6 @@ class VanillaRNN(nn.Module):
         self.Why = nn.Linear(hidden_dim, output_dim, bias=True)
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax(dim=1)
-        # self.bh = Parameter(torch.zeros(hidden_dim))
-        # self.bo = Parameter(torch.zeros(output_dim))
 
     def forward(self, x):
         x = x.view(self.batch_size, self.seq_length, self.input_dim)
