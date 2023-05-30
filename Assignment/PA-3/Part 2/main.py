@@ -24,7 +24,7 @@ class Generator(nn.Module):
         nc (int): Number of channels in the training images
     """
 
-    def __init__(self, nz, ngf, nc):
+    def __init__(self, nz: int, ngf: int, nc: int):
         super(Generator, self).__init__()
         self.nz = nz
         self.ngf = ngf
@@ -47,7 +47,7 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, z):
+    def forward(self, z: torch.Tensor):
         y = self.model(z)
         return y
 
@@ -66,7 +66,7 @@ class Discriminator(nn.Module):
             ndf (int): Size of feature maps in discriminator
         """
 
-    def __init__(self, nc, ndf):
+    def __init__(self, nc: int, ndf: int):
         super(Discriminator, self).__init__()
         self.nc = nc
         self.ndf = ndf
@@ -87,7 +87,7 @@ class Discriminator(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, img):
+    def forward(self, img: torch.Tensor):
         y = self.model(img).squeeze()
         return y
 
@@ -103,7 +103,11 @@ def init_weights(m):
 
 
 # noinspection PyPep8Naming,PyUnboundLocalVariable
-def train(dataloader, netG, netD, optimizerG, optimizerD):
+def train(dataloader: DataLoader,
+          netG: Generator,
+          netD: Discriminator,
+          optimizerG: optim.Optimizer,
+          optimizerD: optim.Optimizer):
     X, G_losses, D_losses = [], [], []
     criterion = nn.BCELoss()
 
