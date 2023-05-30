@@ -12,6 +12,7 @@ import torch.optim as optim
 from dataset import PalindromeDataset
 from lstm import LSTM
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 
 @torch.no_grad()
@@ -46,7 +47,7 @@ def train(train_loader: DataLoader, test_loader: DataLoader):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.RMSprop(model.parameters(), lr=OPT.learning_rate)
 
-    for epoch in range(OPT.max_epoch):
+    for epoch in tqdm(range(OPT.max_epoch)):
         running_loss = 0.0
         correct, total = 0, 0
         total_time = 0.0
@@ -81,12 +82,6 @@ def train(train_loader: DataLoader, test_loader: DataLoader):
             acc, loss = evaluate(model, test_loader, criterion)
             test_accuracy.append(acc)
             test_loss.append(loss)
-
-            if not OPT.quiet:
-                print(f'Epoch {x_axis[-1]}\n'
-                      f'Train Accuracy: {train_accuracy[-1]:.3f} \t Train Loss: {train_loss[-1]:.3f}\t'
-                      f'Test Accuracy: {test_accuracy[-1]:.3f} \t Test Loss: {test_loss[-1]:.3f}\t'
-                      f'Avg Time Cost: {total_time / (epoch + 1):.3f}s')
 
     print('Done training.')
 
